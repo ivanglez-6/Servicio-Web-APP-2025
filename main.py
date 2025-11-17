@@ -204,6 +204,7 @@ def _slice_2d_and_target_size(view, index, user_data):
     elif v == "coronal" and 0 <= index < Y: img = vol[:, index, :]; w, h = X, int(round(Z * user_data["scale_coronal"]))
     elif v == "sagittal" and 0 <= index < X: img = vol[:, :, index]; w, h = Y, int(round(Z * user_data["scale_sagittal"]))
     else: return None, None, None
+    
     return img, max(1, int(w)), max(1, int(h))
 
 def process_dicom_folder(directory, user_data):
@@ -292,6 +293,7 @@ def process_selected_dicom():
     files = user_data['dicom_series'][unique_id]["ruta_archivos"]
     slices = sorted([(int(pydicom.dcmread(f).InstanceNumber), pydicom.dcmread(f).pixel_array) for f in files])
     volume_raw = np.array([s[1] for s in slices])
+    print("Volume raw shape:", volume_raw.shape)
     user_data['dicom_series'][unique_id]["slices"] = volume_raw
     if volume_raw.size == 0: return jsonify({"error": "Serie sin slices"}), 400
     
@@ -308,6 +310,11 @@ def process_selected_dicom():
         "Image": (volume_raw * slope + intercept).astype(np.int16), 
         "scale_axial": s_ax, "scale_coronal": s_co, "scale_sagittal": s_sa
     })
+
+    print("=== View scales ===")
+    print("Axial:", s_ax, "Coronal:", s_co, "Sagittal:", s_sa)
+    print("Pixel spacing:", dx, dy, dz)
+
     user_data.pop('vtk_panel_column', None) # Limpia el panel 3D para la nueva selección
     return jsonify({"mensaje": "Ok"})
 
@@ -369,12 +376,12 @@ def get_image(view, layer):
             if v_lower == 'axial': seg_slice = np.flip(rt[:, :, layer], axis=0)
             elif v_lower == 'sagital': seg_slice = rt[:, layer, :]
             elif v_lower == 'coronal': seg_slice = np.flip(rt[layer, :, :], axis=0)
-            if seg_slice is not None: ax.imshow(ma.masked_where(seg_slice.T == 0, seg_slice.T), cmap='Reds', alpha=0.8, interpolation="nearest", aspect='auto')
+            if seg_slice is not None: ax.imshow(ma.masked_where(seg_slice.T == 0, seg_slice.T), cmap='Reds', alpha=0.8, vmin= 0, vmax= 2, interpolation="nearest", aspect='auto')
         except Exception: pass
 
     # Guarda la imagen en un buffer en memoria y la envía al navegador
     buf = BytesIO()
-    fig.savefig(buf, format='png', transparent=True, bbox_inches='tight', pad_inches=0)
+    fig.savefig(buf, format='png', transparent=True, bbox_inches=None, pad_inches=0)
     plt.close(fig)
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
