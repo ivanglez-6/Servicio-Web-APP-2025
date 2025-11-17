@@ -362,7 +362,7 @@ def get_image(view, layer):
         image_scaled = np.zeros_like(image_scaled)
     image_8bit = image_scaled.astype(np.uint8)
     
-    # Dibuja la imagen con Matplotlibb
+    # Dibuja la imagen con Matplotlibbb
     dpi = 100.0
     fig, ax = plt.subplots(figsize=(w_px / dpi, h_px / dpi), dpi=dpi)
     ax.imshow(image_8bit, cmap="gray", vmin=0, vmax=255, interpolation="nearest", aspect='auto')
